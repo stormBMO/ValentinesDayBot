@@ -2,7 +2,7 @@
 import shutil
 import os
 import telebot
-import string
+
 # ----------------------------------------------------------------------------
 token_bot = '1654475418:AAHZ8MOBnHgH2t66qL4jvSbsrUqrFymufF8'
 bot = telebot.TeleBot(token_bot)
