@@ -2,7 +2,7 @@
 import shutil
 import os
 import telebot
-from telebot.apihelper import ApiException
+import string
 # ----------------------------------------------------------------------------
 token_bot = '1654475418:AAHZ8MOBnHgH2t66qL4jvSbsrUqrFymufF8'
 bot = telebot.TeleBot(token_bot)
@@ -28,11 +28,11 @@ def get_text_messages(message):
         if message.text == "/start":
             markup = generate_start_markup()
             bot.send_message(message.chat.id,
-                             "Привет! Это бот для валентинок (не знаю, придумайте сюда текст - я вставлю). Чтобы отправить валентинку, нажми кнопку ниже",
+                             "Привет!\nЭто чат-бот PrimeTime для валентинок. Порадуй весточкой вторую половинку, друзей или своего краша. Жди валентинки вечером 14 февраля.\n\nЧтобы отправить валентинку, нажми кнопку ниже 🔽",
                              reply_markup=markup)
 
         elif message.text == "Отправить валентинку":
-            bot.send_message(message.chat.id, "Сначала отпаравь мне кому ты хочешь отправить валентинку (Можешь инстаграмм, например), затем отправь саму валентинку",
+            bot.send_message(message.chat.id, "Сначала напиши, кому ты хочешь отправить валентинку. Для этого укажи ник в инстаграмме/id во ВКонтакте.",
                              reply_markup=keyboard_hider)
             bot.register_next_step_handler(message, get_valentine)
 
@@ -42,7 +42,7 @@ def get_text_messages(message):
 def get_valentine(message):
     global to_who
     to_who = message.text
-    bot.send_message(message.chat.id, "Теперь отправивь валентинку")
+    bot.send_message(message.chat.id, "Теперь отправь валентинку")
 
 
 
@@ -60,6 +60,7 @@ def get_photo_messages(message):
         downloaded_file = bot.download_file(file_info.file_path)
         photo_name = to_who + ".jpg"
         backup_name = to_who[:-1]
+        photo_name = photo_name.translate({ord(c): None for c in '?!/;:\\'})
         backup_path_name = photo_name
         with open(photo_name, 'wb') as new_file:
             new_file.write(downloaded_file)
@@ -85,6 +86,17 @@ def generate_start_markup():
     markup.row(button1)
     return markup
 
+#-----------------------------Other Listeners----------------------------------
+@bot.message_handler(content_types=['sticker'])
+def sticker_stop(message):
+    print(message)
+    bot.send_sticker(message.from_user.id, 'CAACAgQAAxkBAAIH1V79skuRxW2HHxSIguJ1xG3zN3T3AAJXBwACzfXABHlZqZRf_0W6GgQ')
+    bot.send_message(message.from_user.id, "Я не понимаю стикеров, пиши /start")
+
+
+@bot.message_handler(content_types=['voice'])
+def voice_stop(message):
+    bot.send_message(message.from_user.id, "Я не понимаю речь, пиши /start")
 
 if __name__ == '__main__':
     bot.infinity_polling()
