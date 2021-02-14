@@ -1,15 +1,32 @@
 # coding=utf-8
 import shutil
+from time import sleep
+from random import randint
 import os
 import telebot
+import threading
 
 # ----------------------------------------------------------------------------
 token_bot = '1654475418:AAHZ8MOBnHgH2t66qL4jvSbsrUqrFymufF8'
 bot = telebot.TeleBot(token_bot)
 flag_for_schedule = 0
 keyboard_hider = telebot.types.ReplyKeyboardRemove()
-to_who = ""
 channel_id = "@pt_demid"
+
+users = {
+
+}
+
+#------------------------------Tread start----------------------------------
+
+#------------------------------States----------------------------------------
+user_states = {}
+
+S_NOSUB = "0"  # Начало нового диалога
+S_START = "1"
+S_ENTER_NAME = "2"
+S_SEND_PIC = "3"
+
 # -----------------------------Text-------------------------------------------
 
 def is_subscribed(channel_id, user_id):
@@ -22,37 +39,46 @@ def is_subscribed(channel_id, user_id):
 
 @bot.message_handler(content_types=["text"])
 def get_text_messages(message):
+    chat_id = message.from_user.id
+    if chat_id not in user_states:
+        user_states[chat_id] = S_NOSUB
     if not is_subscribed(channel_id, message.from_user.id):
+        user_states[chat_id] = S_NOSUB
         bot.send_message(message.chat.id, "Для использования бота подпишись на @pt_demid, а затем опять напиши /start")
     else:
-        if message.text == "/start":
-            markup = generate_start_markup()
-            bot.send_message(message.chat.id,
-                             "Привет!\nЭто чат-бот PrimeTime для валентинок. Порадуй весточкой вторую половинку, друзей или своего краша. Жди валентинки вечером 14 февраля.\n\nЧтобы отправить валентинку, нажми кнопку ниже 🔽",
-                             reply_markup=markup)
-
-        elif message.text == "Отправить валентинку":
-            bot.send_message(message.chat.id, "Сначала напиши, кому ты хочешь отправить валентинку. Для этого укажи ник в инстаграмме/id во ВКонтакте.",
-                             reply_markup=keyboard_hider)
-            bot.register_next_step_handler(message, get_valentine)
+        user_states[chat_id] = S_START
+        main_func(message)
 
 
 #------------------------------Main logic--------------------------------------
 
-def get_valentine(message):
-    global to_who
-    to_who = message.text
-    bot.send_message(message.chat.id, "Теперь отправь валентинку")
+def main_func(message):
+    chat_id = message.chat.id
+    if message.text == "/start":
+        markup = generate_start_markup()
+        bot.send_message(message.chat.id,
+                         "Привет!\nЭто чат-бот PrimeTime для валентинок. Порадуй весточкой вторую половинку, друзей или своего краша. Жди валентинки вечером 14 февраля.\n\nЧтобы отправить валентинку, нажми кнопку ниже 🔽",
+                         reply_markup=markup)
+    elif message.text == "Отправить валентинку":
+        user_states[chat_id] = S_ENTER_NAME
+        bot.send_message(message.chat.id,
+                         "Сначала напиши, кому ты хочешь отправить валентинку. Для этого укажи ник в инстаграмме/id во ВКонтакте.",
+                         reply_markup=keyboard_hider)
+        bot.register_next_step_handler(message, get_valentine)
 
+
+def get_valentine(message):
+    if user_states[message.chat.id] == S_ENTER_NAME:
+        users[message.from_user.id] = message.text
+        bot.send_message(message.chat.id, "Теперь отправь валентинку")
+        user_states[message.chat.id] = S_SEND_PIC
 
 
 # -----------------------------Photo--------------------------------------------
 @bot.message_handler(content_types=["photo"])
 def get_photo_messages(message):
-    global to_who
-    if to_who == "":
-        bot.send_message(message.chat.id, "Для начала пройди все пункты до этого!")
-    else:
+    if user_states[message.chat.id] == S_SEND_PIC:
+        to_who = users[message.from_user.id]
         to_who = to_who + "0"
         markup = generate_start_markup()
         fileID = message.photo[-1].file_id
@@ -76,7 +102,10 @@ def get_photo_messages(message):
                 shutil.move(photo_name, "photo")
                 break
         bot.send_message(message.chat.id, "Супер, " + backup_name + " получит твою валентинку.", reply_markup=markup)
-        to_who = ""
+        users[message.from_user.id] = ""
+        user_states[message.chat.id] = S_START
+    else:
+        bot.send_message(message.chat.id, "Для начала пройди все пункты до этого!")
 
 # -----------------------------keyboards----------------------------------------
 
