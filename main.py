@@ -7,7 +7,7 @@ import telebot
 import threading
 
 # ----------------------------------------------------------------------------
-token_bot = '1654475418:AAHZ8MOBnHgH2t66qL4jvSbsrUqrFymufF8'
+token_bot = 'YOUR_TOKEN_HERE'
 bot = telebot.TeleBot(token_bot)
 flag_for_schedule = 0
 keyboard_hider = telebot.types.ReplyKeyboardRemove()
